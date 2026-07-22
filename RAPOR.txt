@@ -1,0 +1,34 @@
+YAPILANLAR
+
+16-17.07.2026
+*Etraftaki projeleri gezdirdi bir abi sonra bir tanesini sectim
+*YOLO yu araştırdım ve öğrendim YOLO ile birkac proje yaptım
+        -Taş, Kağıt, Makas tespit eden eğitilmiş bir AI
+        -Drone tespit eden bir AI dataset(12k 7 epoch cok kaliteli olmadı)
+        -insanların yüz sekillerini tespit eden bir AI
+
+18-19-20.06.2026 tarihleri
+*Yapay zekanın matematiği ve yapay sinir ağları
+        -Youtube üzerinden videolar izledim (3 brown 1 blue, noktalı virgül, vs.)
+        -ağirlik (weights)
+        -nöronlar
+        -aktivasyon fonksiyonları
+            ReLU
+            Sigmoid
+        -maliyet fonksiyonu (Loss)
+        -gardyan inis (Gradient Descent)---- learninng rate
+        -local minimum
+        -mini batch -- epoch
+        -Backpropagation (Geri Yayılım)
+*Yukarıdaki maddeleri pekiştirmek için python üzerinden öğrenmek için projeler yaptım  /sinir_aglari dosyasının içinde projeler şunlar:
+
+        -(sinir_aglari/sinir_aglari_ogren_çizerek_tahmin dosyasının içinde bulunuyorlar) MNIST (sayıların oldugu bir dataset) datasetini kullandım. Kodun içeriği şu şekilde ilk önce datasetteki veriler ile ReLU aktivasyon fonksiyonu aracılığıyla kendini eğitiyor eğitimi bitirdikten sonra ekranımıza bir çizim ekranı cıkıyor. Bu çıkan ekranı mouse ile istediğimiz sayıyı çiziyoruz confirm dediğimizde sayısyı tahmin ediyor. Aynı dataset ile farklı epoch verildiğinde model kalitesinin değişimini görebilmek için 3,15 ve 45 epoch ile eğitilmis farklı modellerini yaptım. Epoch değeri 45 olarak eğitilmiş model ile epoch değeri 3 olan modeller arasında bariz fark var.
+
+        -(sinir_aglari/sinir_aglari_ogren_duyguanalizi_tahmini) Cümle_olusturma isimli bir kod var bu kod kendi içinde olan olumlu ve olumsuz kelimler ile film yorumları üretiyor ve sonucunda bize 1000 cümleli bir dataset veriyor. Diğer kod (asil_kod isimli dosya)ise bu datasetteki olumlu ve olumsuz cümleler ile kendisini yine ReLU aktivasyon fonksiyonu ile eğitiyor. Eğitimi bitince biz terminal üzerinden kendi film yorumlarımızı yazabiliyoruz eğitilmiş model ise bu yorumların pozitif mi negatifmi oldugunu ve güven skoru veriyor (buda yorumumuzun aslında yüzde kaç pozitif olduğunun göstergesi) bu iki değeri terminal üzerinden cıktı olarak bize veriyor.
+
+
+
+20-21.07.2026
+
+
+
