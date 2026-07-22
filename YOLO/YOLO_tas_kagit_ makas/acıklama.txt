@@ -1,12 +1,133 @@
-Amaç:Taş kağıt makas oyununda elimizin hareketini anlık tespit eden bir yolo modeli eğitmek.
+✌️ YOLO ile Taş-Kâğıt-Makas Nesne Tespiti Projesi
+==================================================
 
-Süreç:
-Yolo11n modelini eğitmeyi tercih ettim ardından Roboflow'dan aldığım dataseti (dataset 3bin fotograf barındırıyor) ben bu dataseti 3 epoch ile Google Colab aracılığıyla eğittim sonucunda best.pt isimli eğitilmiş YOLO dosyasını çıktı olarak aldık.
+1. PROJE NE İŞE YARAR VE AMACI NEDİR?
+------------------------------------
+Bu proje, bilgisayarlı görü (Computer Vision) ve derin öğrenme yöntemlerini kullanarak kameradan veya görsellerden alınan Taş, Kâğıt ve Makas el hareketlerini gerçek zamanlı olarak tespit etmeyi amaçlar.
 
-Geri Dönüş:
-taşı algılama gercekten cok iyi seviyede fakat makas ve kagıt için aynısını diyemiyeceğim makası bazen algılıyor bazen algılayamıyor fakat kağıdı neredeyse hiç algılayamıyor. Bunun sebebi ise muhtemelen hem yolo11 'in en küçük versiyonunu kullanmam bunun yanında kullandığım datasetin küçük olması vede epoch sayısını düşük tutmam dolayısıyla gercek ve kaliteli bir model olmadı.
+* Gerçek Zamanlı Tespit: Görsel veya video akışındaki el hareketlerini milisaniyeler içinde algılar.
+* Kullanım Alanları: İnsan-bilgisayar etkileşimi (HCI), kamerayla oynanan oyunlar, el hareketiyle kontrol sistemleri ve yapay zeka/bilgisayarlı görü eğitimleri.
+* Sınıflar:
+  1. rock (Taş)
+  2. paper (Kâğıt)
+  3. scissors (Makas)
 
-Kendime kattıklarım:
-*Yolo'yu kullanma
-*Robolow'dan dataset bulma, Roboflow'da bir model eğitme.
-*Google Colab kullanımı
+
+2. MODEL NASIL EĞİTİLDİ? (EĞİTİM ADIMLARI)
+------------------------------------------
+Eğitim süreci 5 temel adımdan oluşmaktadır:
+
+1. Veri Toplama ve Etiketleme:
+   Taş, kâğıt ve makas hareketlerini içeren görseller toplandı ve her bir el hareketi dikdörtgen kutularla (Bounding Box) etiketlendi (Roboflow formatında).
+
+2. Veri Setinin Bölünmesi:
+   Görseller %70 Eğitim (Train), %20 Doğrulama (Validation) ve %10 Test kümesi olarak ayrıldı.
+
+3. Transfer Learning (Transfer Öğrenme):
+   Sıfırdan eğitmek yerine COCO veri setiyle önceden eğitilmiş hafif ve hızlı bir YOLO modeli (yolov8n.pt / yolov11n.pt) temel alındı.
+
+4. Eğitim (Training):
+   Google Colab'ın ücretsiz GPU (T4) gücü kullanılarak model belirlenen epoch (döngü) sayısı boyunca eğitildi.
+
+5. Ağırlıkların Kaydedilmesi:
+   Eğitim sonunda elde edilen en iyi model ağırlığı (best.pt) dışa aktarılarak yerel projelerde veya canlı kamera testlerinde kullanılabilir hale getirildi.
+
+
+3. GOOGLE COLAB KODLARI
+-----------------------
+Aşağıdaki kodları Google Colab üzerinde sırasıyla çalıştırarak modeli eğitebilir ve test edebilirsin.
+
+--- Adım 1: Ortam Kurulumu ve GPU Kontrolü ---
+# GPU durumunu kontrol edelim
+!nvidia-smi
+
+# Ultralytics (YOLO) kütüphanesini ve Roboflow'u yükleyelim
+!pip install ultralytics roboflow -q
+
+
+--- Adım 2: Veri Setini İndirme (Roboflow) ---
+from roboflow import Roboflow
+
+# Roboflow API ile veri setini indirme
+rf = Roboflow(api_key="YOUR_ROBOFLOW_API_KEY")
+project = rf.workspace("workspace-adi").project("rock-paper-scissors")
+dataset = project.version(1).download("yolov8")
+
+
+--- Adım 3: YOLO Modelini Eğitme ---
+from ultralytics import YOLO
+
+# Önceden eğitilmiş hafif YOLO modelini yüklüyoruz
+model = YOLO('yolov8n.pt')  # Dilersen yolov11n.pt de kullanabilirsin
+
+# Eğitimi başlatıyoruz
+results = model.train(
+    data=f"{dataset.location}/data.yaml", # Veri seti konfigürasyonu
+    epochs=50,                             # Eğitim döngü sayısı
+    imgsz=640,                             # Görsel boyutu
+    batch=16,                              # Batch boyutu
+    name='rps_yolo_model'                  # Eğitimin kaydedileceği klasör adı
+)
+
+
+--- Adım 4: Model Performansını Değerlendirme ---
+# Doğrulama (Validation) sonuçlarını inceleyelim
+metrics = model.val()
+print(f"mAP50-95 Oranı: {metrics.box.map}")
+
+
+--- Adım 5: Rastgele Bir Görsel Üzerinde Test Etme (Tahmin) ---
+import cv2
+from PIL import Image
+
+# Eğitilen en iyi modeli yüklüyoruz
+best_model = YOLO('runs/detect/rps_yolo_model/weights/best.pt')
+
+# Örnek bir görsel üzerinde tahmin yapma
+results = best_model.predict(source=f"{dataset.location}/test/images", save=True, conf=0.5)
+
+# İlk tahmin edilen görseli gösterelim
+sample_img_path = results[0].save_dir + "/" + results[0].path.split("/")[-1]
+Image.open(sample_img_path)
+
+
+--- Adım 6: Eğitilen Modeli (best.pt) Bilgisayara İndirme ---
+from google.colab import files
+
+# Eğitilen en performanslı model ağırlığını bilgisayarımıza indiriyoruz
+files.download('runs/detect/rps_yolo_model/weights/best.pt')
+
+
+4. MODELİ YERELDE (KENDİ BİLGİSAYARINDA) ÇALIŞTIRMA
+--------------------------------------------------
+İndirdiğin best.pt dosyasını kendi bilgisayarında web kamerası ile çalıştırmak istersen şu Python kodunu kullanabilirsin:
+
+import cv2
+from ultralytics import YOLO
+
+# Eğitilmiş modeli yükle
+model = YOLO('best.pt')
+
+# Web kamerasını aç
+cap = cv2.VideoCapture(0)
+
+while cap.isOpened():
+    success, frame = cap.read()
+    if not success:
+        break
+
+    # Modelle kare üzerinde tespit yap
+    results = model(frame, conf=0.6)
+
+    # Sonuçları kare üzerine çiz
+    annotated_frame = results[0].plot()
+
+    # Ekrana bas
+    cv2.imshow("Tas Kagit Makas YOLO Tespiti", annotated_frame)
+
+    # 'q' tuşuna basınca çık
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
