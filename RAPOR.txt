@@ -29,6 +29,9 @@ YAPILANLAR
 
 
 20-21.07.2026
+*Yine proje yapmaya devam ettim 
+        -Bu proje şu şekilde elimizde bir youtube videosu var ve biz bunun yorumlarının nasıl olduğunu merak ediyoruz yorumlarında en çok nefret ve pozitif cümleler  ile bağlantılı kelimeleri görebiliyoruz, örnek yorumları görebiliyoruz bunu şu şeklide yaptım ilk olarak dataset buldum hugging face içerisinde *winvoker/turkish-sentiment-analysis-dataset** datasetini kullandım bu datasetin içerisinde pozitif negatif ve nötr yorumlar var. Ardından pytorch, ReLU kullanarak bu modeli eğittim youtube API ını alıp istediğim videolara erişebildim. Gözlemler sonucu şu şekilde bir sonuca vardım dataset içerisinde negatif yorum sayısı çok fazla değil bundan dolayı onları bazen karıştırabiliyır ikinci olarakda soru cümlelerinde cok kafası karışıyor.
+        -Bir adet daha proje var önceden 2d çizdiğim şekillerin tahminini yapan bir model vardı bunu bu sefer 3d objeleri algılayacak modelini yaptım ama ilk denemeler hüsran ile sonuçlandıgüzel çalışmadı daha sonrasında ilk başta dataset oluşturucu kodu değiştirdik daha sonrsında epoch sayısını arttırdık daha iyi oldu hala ama küp algılamada sorun vardı  bu sefer farklı çizim türlerini yani dah doğrusal değilde insanların çizdiği gibi bir dataset ile eğitilince performansı gercekten cok fazla arttı.
 
 
 
