@@ -1,0 +1,135 @@
+✌️ YOLO ile Yüz Şekli Tespiti ve Sınıflandırma Projesi
+=====================================================
+
+1. PROJE NE İŞE YARAR VE AMACI NEDİR?
+------------------------------------
+Bu proje, bilgisayarlı görü (Computer Vision) ve derin öğrenme yöntemlerini kullanarak insan yüzlerinin formunu (oval, yuvarlak, kare, kalp, elmas vb.) görsellerden veya canlı kamera akışından otomatik olarak tespit ve sınıflandırmayı amaçlar.
+
+* Gerçek Zamanlı Tespit: Yüz hatlarını analiz ederek yüz şekli kategorisini milisaniyeler içinde belirler.
+* Kullanım Alanları: Gözlük ve çerçeve seçimi öneri sistemleri, saç modeli ve makyaj danışmanlığı uygulamaları, dijital güzellik/stil asistaları ve kişiselleştirilmiş aksesuar tavsiye yazılımları.
+* Sınıflar:
+  1. oval (Oval)
+  2. round (Yuvarlak)
+  3. square (Kare)
+  4. heart (Kalp)
+  5. diamond (Elmas)
+
+
+2. MODEL NASIL EĞİTİLDİ? (EĞİTİM ADIMLARI)
+------------------------------------------
+Eğitim süreci 5 temel adımdan oluşmaktadır:
+
+1. Veri Toplama ve Etiketleme:
+   Farklı yüz şekillerine sahip yüz görselleri toplandı ve yüz bölgeleri bounding box (sınırlayıcı kutu) veya sınıf etiketleri ile Roboflow üzerinde etiketlendi.
+
+2. Veri Setinin Bölünmesi:
+   Görseller %70 Eğitim (Train), %20 Doğrulama (Validation) ve %10 Test kümesi olarak ayrıldı.
+
+3. Transfer Learning (Transfer Öğrenme):
+   COCO veri setiyle önceden eğitilmiş hafif ve yüksek performanslı YOLO modellerinden biri (yolov8n.pt / yolov11m.pt) temel alındı.
+
+4. Eğitim (Training):
+   Google Colab GPU (T4/A100) altyapısı kullanılarak model belirlenen epoch ve hiperparametre değerleri ile eğitildi.
+
+5. Ağırlıkların Kaydedilmesi:
+   Eğitim sonunda elde edilen en yüksek doğruluk oranına sahip model ağırlıkları (best.pt) aktarılarak test ve entegrasyona hazır hale getirildi.
+
+
+3. GOOGLE COLAB KODLARI
+-----------------------
+Aşağıdaki kodları Google Colab üzerinde sırasıyla çalıştırarak yüz şekli tespit modelini eğitebilir ve test edebilirsin.
+
+--- Adım 1: Ortam Kurulumu ve GPU Kontrolü ---
+# GPU durumunu kontrol edelim
+!nvidia-smi
+
+# Ultralytics (YOLO) kütüphanesini ve Roboflow'u yükleyelim
+!pip install ultralytics roboflow -q
+
+
+--- Adım 2: Veri Setini İndirme (Roboflow) ---
+from roboflow import Roboflow
+
+# Roboflow API ile yüz şekli veri setini indirme
+rf = Roboflow(api_key="YOUR_ROBOFLOW_API_KEY")
+project = rf.workspace("workspace-adi").project("face-shape-detection")
+dataset = project.version(1).download("yolov8")
+
+
+--- Adım 3: YOLO Modelini Eğitme ---
+from ultralytics import YOLO
+
+# Önceden eğitilmiş YOLO modelini yüklüyoruz (örneğin yolov11m.pt veya yolov8n.pt)
+model = YOLO('yolov8n.pt')
+
+# Eğitimi başlatıyoruz
+results = model.train(
+    data=f"{dataset.location}/data.yaml", # Veri seti konfigürasyonu
+    epochs=50,                             # Eğitim döngü sayısı
+    imgsz=640,                             # Görsel boyutu
+    batch=16,                              # Batch boyutu
+    name='face_shape_yolo_model'           # Eğitimin kaydedileceği klasör adı
+)
+
+
+--- Adım 4: Model Performansını Değerlendirme ---
+# Doğrulama (Validation) sonuçlarını inceleyelim
+metrics = model.val()
+print(f"mAP50-95 Oranı: {metrics.box.map}")
+
+
+--- Adım 5: Örnek Görsel Üzerinde Test Etme (Tahmin) ---
+import cv2
+from PIL import Image
+
+# Eğitilen en iyi modeli yüklüyoruz
+best_model = YOLO('runs/detect/face_shape_yolo_model/weights/best.pt')
+
+# Test görseli üzerinde tahmin yapma
+results = best_model.predict(source=f"{dataset.location}/test/images", save=True, conf=0.5)
+
+# Tahmin sonucunu görselleştirme
+sample_img_path = results[0].save_dir + "/" + results[0].path.split("/")[-1]
+Image.open(sample_img_path)
+
+
+--- Adım 6: Eğitilen Modeli (best.pt) Bilgisayara İndirme ---
+from google.colab import files
+
+# En performanslı model ağırlıklarını indiriyoruz
+files.download('runs/detect/face_shape_yolo_model/weights/best.pt')
+
+
+4. MODELİ YERELDE (KENDİ BİLGİSAYARINDA) ÇALIŞTIRMA
+--------------------------------------------------
+İndirdiğin best.pt dosyasını kendi bilgisayarında web kamerasından canlı yüz şekli tespiti yapmak için şu Python kodunu kullanabilirsin:
+
+import cv2
+from ultralytics import YOLO
+
+# Eğitilmiş yüz şekli tespit modelini yükle
+model = YOLO('best.pt')
+
+# Web kamerasını aç
+cap = cv2.VideoCapture(0)
+
+while cap.isOpened():
+    success, frame = cap.read()
+    if not success:
+        break
+
+    # Kamera karesi üzerinde yüz şekli tespiti yap
+    results = model(frame, conf=0.5)
+
+    # Sonuçları kare üzerine çiz
+    annotated_frame = results[0].plot()
+
+    # Ekrana bas
+    cv2.imshow("Yuz Sekli Tespiti (YOLO)", annotated_frame)
+
+    # 'q' tuşuna basınca çık
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
