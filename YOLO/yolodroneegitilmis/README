@@ -1,0 +1,126 @@
+🛸 YOLO ile Drone (İHA) Tespiti ve Sınıflandırma Projesi
+=====================================================
+
+1. PROJE NE İŞE YARAR VE AMACI NEDİR?
+------------------------------------
+Bu proje, bilgisayarlı görü (Computer Vision) ve derin öğrenme yöntemlerini kullanarak gökyüzünde veya farklı ortamlarda uçan drone/İHA (İnsansız Hava Aracı) objelerini video akışlarından veya görsellerden gerçek zamanlı olarak tespit etmeyi amaçlar.
+
+* Gerçek Zamanlı Tespit: Yüksek hızlı nesne tespiti sayesinde drone'ları canlı kamera veya video kayıtlarında milisaniyeler içinde tespit eder.
+* Kullanım Alanları: Güvenlik ve hava sahası ihlali takip sistemleri, askeri/savunma sanayi uygulamaları, otonom drone takip sistemleri ve yarış/etkinlik takipleri.
+* Sınıflar:
+  1. drone (Drone / İHA)
+
+
+2. MODEL NASIL EĞİTİLDİ? (EĞİTİM ADIMLARI)
+------------------------------------------
+Eğitim süreci 5 temel adımdan oluşmaktadır:
+
+1. Veri Toplama ve Etiketleme:
+   Farklı açı, açısal boyut, hava koşulları ve arka planlarda çekilmiş drone görselleri toplanarak Roboflow üzerinde bounding box (sınırlayıcı kutu) ile etiketlendi.
+
+2. Veri Setinin Bölünmesi:
+   Görseller %70 Eğitim (Train), %20 Doğrulama (Validation) ve %10 Test kümesi olarak ayrıldı.
+
+3. Transfer Learning (Transfer Öğrenme):
+   Küçük ve hızlı nesneleri rahat algılayabilmesi için COCO veri setiyle önceden eğitilmiş hafif ve efektif bir YOLO modeli (yolov8n.pt / yolov11m.pt) temel alındı.
+
+4. Eğitim (Training):
+   Google Colab GPU (T4/A100) altyapısı kullanılarak model uygun çözünürlük (imgsz=640) ve epoch ayarlarıyla eğitildi.
+
+5. Ağırlıkların Kaydedilmesi:
+   Eğitim sonunda elde edilen en iyi model ağırlığı (best.pt) dışa aktarılarak yerel projelerde veya video işleme testlerinde kullanılabilir hale getirildi.
+
+
+3. GOOGLE COLAB KODLARI
+-----------------------
+Aşağıdaki kodları Google Colab üzerinde sırasıyla çalıştırarak drone tespit modelini eğitebilir ve test edebilirsin.
+
+--- Adım 1: Ortam Kurulumu ve GPU Kontrolü ---
+# GPU durumunu kontrol edelim
+!nvidia-smi
+
+# Ultralytics (YOLO) kütüphanesini ve Roboflow'u yükleyelim
+!pip install ultralytics roboflow -q
+
+
+--- Adım 2: Veri Setini İndirme (Roboflow) ---
+from roboflow import Roboflow
+
+# Roboflow API ile drone veri setini indirme
+rf = Roboflow(api_key="YOUR_ROBOFLOW_API_KEY")
+project = rf.workspace("workspace-adi").project("drone-detection")
+dataset = project.version(1).download("yolov8")
+
+
+--- Adım 3: YOLO Modelini Eğitme ---
+from ultralytics import YOLO
+
+# Önceden eğitilmiş YOLO modelini yüklüyoruz
+model = YOLO('yolov8n.pt')  # Dilersen yolov11m.pt veya yolov8s.pt kullanabilirsin
+
+# Eğitimi başlatıyoruz
+results = model.train(
+    data=f"{dataset.location}/data.yaml", # Veri seti konfigürasyonu
+    epochs=50,                             # Eğitim döngü sayısı
+    imgsz=640,                             # Görsel boyutu
+    batch=16,                              # Batch boyutu
+    name='drone_detection_yolo_model'      # Eğitimin kaydedileceği klasör adı
+)
+
+
+--- Adım 4: Model Performansını Değerlendirme ---
+# Doğrulama (Validation) sonuçlarını inceleyelim
+metrics = model.val()
+print(f"mAP50-95 Oranı: {metrics.box.map}")
+
+
+--- Adım 5: Video Dosyası Üzerinde Test Etme (Tahmin) ---
+from ultralytics import YOLO
+
+# Eğitilen en iyi modeli yüklüyoruz
+best_model = YOLO('runs/detect/drone_detection_yolo_model/weights/best.pt')
+
+# Yerel bir video dosyası (örneğin drone.mp4) üzerinde tahmin yapma
+results = best_model.predict(source="drone.mp4", save=True, conf=0.5)
+
+
+--- Adım 6: Eğitilen Modeli (best.pt) Bilgisayara İndirme ---
+from google.colab import files
+
+# En performanslı model ağırlıklarını bilgisayarımıza indiriyoruz
+files.download('runs/detect/drone_detection_yolo_model/weights/best.pt')
+
+
+4. MODELİ YERELDE (KENDİ BİLGİSAYARINDA) ÇALIŞTIRMA
+--------------------------------------------------
+İndirdiğin best.pt dosyasını ve localindeki bir "drone.mp4" video dosyasını kullanarak canlı/video tespiti yapmak için şu Python kodunu kullanabilirsin:
+
+import cv2
+from ultralytics import YOLO
+
+# Eğitilmiş drone tespit modelini yükle
+model = YOLO('best.pt')
+
+# Video dosyasını veya kamerayı aç (Kamera için cv2.VideoCapture(0))
+cap = cv2.VideoCapture("drone.mp4")
+
+while cap.isOpened():
+    success, frame = cap.read()
+    if not success:
+        break
+
+    # Kare üzerinde drone tespiti yap
+    results = model(frame, conf=0.5)
+
+    # Sonuçları kare üzerine çiz
+    annotated_frame = results[0].plot()
+
+    # Ekrana bas
+    cv2.imshow("Drone (IHA) Tespiti - YOLO", annotated_frame)
+
+    # 'q' tuşuna basınca çık
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
