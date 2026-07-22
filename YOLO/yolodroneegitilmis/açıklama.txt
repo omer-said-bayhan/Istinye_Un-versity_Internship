@@ -1,0 +1,9 @@
+Amaç:
+Bu projenin amacı oynatılan drone uçurma videosunda bunlunan Drone'u tespit etmek. Roboflow'dan topladığım farklı farklı datasetler ile farklı epoch döngülerinde sonucun ne kadar değiştiğini görmek aynı zamanda nesne tespit etme alanında daha fazla tecrübelenmek.
+
+Süreç: İlk başta Roboflow'dan datasetler topladım ardından her bir dataseti 7 epoch ile eğittim birde daha önce kullandığım dataseti farklı epoch donguleri ile eğiitim bunun sebebi sonucun ne kadar değişeceğini gözlemlemekti.
+
+sonuc: .... binlik dataset ile ..  epochda su sekilde fln
+
+
+kendime kattıklarım:
